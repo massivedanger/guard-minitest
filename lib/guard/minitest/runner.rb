@@ -18,6 +18,7 @@ module Guard
           :bundler  => File.exist?("#{Dir.pwd}/Gemfile"),
           :rubygems => false,
           :drb      => false,
+          :zeus     => false,
           :test_folders       => %w[test spec],
           :test_file_patterns => %w[*_test.rb test_*.rb *_spec.rb],
           :cli      => ''
@@ -56,6 +57,10 @@ module Guard
         @options[:drb]
       end
 
+      def zeus?
+        @options[:zeus]
+      end
+
       def test_folders
         @options[:test_folders]
       end
@@ -72,6 +77,15 @@ module Guard
         cmd_parts << "bundle exec" if bundler?
         if drb?
           cmd_parts << 'testdrb'
+          cmd_parts << "-r #{File.expand_path('../runners/default_runner.rb', __FILE__)}"
+          cmd_parts << "-e '::GUARD_NOTIFY=#{notify?}'"
+          test_folders.each do |f|
+            cmd_parts << "#{f}/test_helper.rb" if File.exist?("#{f}/test_helper.rb")
+            cmd_parts << "#{f}/spec_helper.rb" if File.exist?("#{f}/spec_helper.rb")
+          end
+          cmd_parts += paths.map{|path| "./#{path}" }
+        elsif zeus?
+          cmd_parts << 'zeus testrb'
           cmd_parts << "-r #{File.expand_path('../runners/default_runner.rb', __FILE__)}"
           cmd_parts << "-e '::GUARD_NOTIFY=#{notify?}'"
           test_folders.each do |f|
